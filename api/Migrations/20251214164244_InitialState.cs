@@ -15,7 +15,7 @@ namespace api.Migrations
                 name: "scraped_products",
                 columns: table => new
                 {
-                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    id = table.Column<Guid>(type: "uuid", nullable: false), 
                     url = table.Column<string>(type: "text", nullable: true),
                     name = table.Column<string>(type: "text", nullable: true)
                 },

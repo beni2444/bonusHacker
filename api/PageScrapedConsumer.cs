@@ -7,24 +7,24 @@ namespace api;
 public class PageScrapedConsumer : IConsumer<PageScraped>
 {
     private BonusHackerDbContext _bonusHackerDbContext;
-
-    public PageScrapedConsumer(BonusHackerDbContext bonusHackerDbContext)
+    private ILogger<PageScrapedConsumer> _logger;
+    public PageScrapedConsumer(BonusHackerDbContext bonusHackerDbContext, ILogger<PageScrapedConsumer> logger)
     {
         _bonusHackerDbContext = bonusHackerDbContext;
+        _logger = logger;
     }
 
     public async Task Consume(ConsumeContext<PageScraped> context)
     {
-        _bonusHackerDbContext.ScrapedProducts.Add(new ScrapedProduct
+        var product = new ScrapedProduct
         {
             Id = Guid.NewGuid(),
             Url = context.Message.Url,
             Name = context.Message.Name,
 
-        });
+        };
+        _bonusHackerDbContext.ScrapedProducts.Add(product);
         await _bonusHackerDbContext.SaveChangesAsync();
-        var message = context.Message;
-        Console.WriteLine($"Page scraped: {message.Url}");
-
+        _logger.LogInformation("added scraped product to database with name: {0} id: {1} ", product.Name, product.Id);
     }
 }

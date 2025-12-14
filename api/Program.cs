@@ -1,6 +1,7 @@
 // Program.cs
 
 using api;
+using api.Data.Config;
 using MassTransit;
 
 var host = Host.CreateDefaultBuilder(args)
@@ -8,6 +9,9 @@ var host = Host.CreateDefaultBuilder(args)
     {
         var username = context.Configuration.GetValue<string>("RabbitMq:Username");
         var password = context.Configuration.GetValue<string>("RabbitMq:Password");
+        var host = context.Configuration.GetValue<string>("RabbitMq:Host");
+        
+        services.AddDbContext<BonusHackerDbContext>();
         
         services.AddMassTransit(x =>
         {
@@ -15,10 +19,10 @@ var host = Host.CreateDefaultBuilder(args)
             x.UsingRabbitMq((ctx, cfg) =>
             {
 
-                cfg.Host("localhost", "/", h =>
+                cfg.Host(host, "/", h =>
                 {
-                    h.Username("guest");
-                    h.Password("guest");
+                    h.Username(username);
+                    h.Password(password);
                 });
                 
                 cfg.ConfigureEndpoints(ctx);

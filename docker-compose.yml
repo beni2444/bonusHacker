@@ -16,6 +16,18 @@ services:
       - rabbitmq-lib:/var/lib/rabbitmq/
       - rabbitmq-log:/var/log/rabbitmq
 
+  postgres:
+    image: postgres:17
+    command: -c 'max_connections=500' -c 'log_statement=all'
+    environment:
+      POSTGRES_PASSWORD: Strong_Password1234%
+      POSTGRES_USER: user
+      POSTGRES_ROLE: root
+    ports:
+      - 5432:5432
+    volumes:
+      - ./volume/postgres/initdb:/docker-entrypoint-initdb.d/:rw
+
 configs:
   rabbitmq-plugins:
     content: "[rabbitmq_management]."  

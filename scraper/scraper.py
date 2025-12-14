@@ -4,10 +4,14 @@ import json
 import time
 from urllib.parse import urlparse, urljoin
 from collections import deque
+import pika
+
 
 
 # Example usage
 if __name__ == "__main__":
+    connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+    channel = connection.channel()
     # Define start URL, extract domain, initialise data structires for vistsed, to visit and products urls
     start_url = "https://www.lidl.nl/"
     domain = urlparse(start_url).netloc
@@ -56,6 +60,7 @@ if __name__ == "__main__":
                 text = section.get_text(separator=" ", strip=True) if section else None
                 product_metadata[data] = text
             print(product_metadata)
+            channel.queue_declare(queue=product_metadata)
 
-
+    connection.close()
 

@@ -5,15 +5,18 @@ import time
 from urllib.parse import urlparse, urljoin
 from collections import deque
 import pika
+import json
 
-
+#add abstraction for metadata with config per supermarket (also with day they change bonus)
+#make code re-usable
+#clean message before sending it (too long)
 
 # Example usage
 if __name__ == "__main__":
     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
     channel = connection.channel()
     # Define start URL, extract domain, initialise data structires for vistsed, to visit and products urls
-    start_url = "https://www.lidl.nl/"
+    start_url = "https://www.lidl.nl/p/afbakbroodjes/p10022241"
     domain = urlparse(start_url).netloc
     products_url = set()
     visited = set()
@@ -60,7 +63,8 @@ if __name__ == "__main__":
                 text = section.get_text(separator=" ", strip=True) if section else None
                 product_metadata[data] = text
             print(product_metadata)
-            channel.queue_declare(queue=product_metadata)
+            message = json.dumps(product_metadata)
+            channel.queue_declare(queue=message)
 
     connection.close()
 

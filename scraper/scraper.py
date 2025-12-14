@@ -2,93 +2,60 @@ import requests
 from bs4 import BeautifulSoup
 import json
 import time
-
-class WebScraper:
-    def __init__(self, base_url):
-        """Initialize the scraper with a base URL"""
-        self.base_url = base_url
-        self.headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-    
-    def fetch_page(self, url):
-        """Fetch a webpage and return the response"""
-        try:
-            response = requests.get(url, headers=self.headers, timeout=10)
-            response.raise_for_status()  # Raises an error for bad status codes
-            return response
-        except requests.RequestException as e:
-            print(f"Error fetching {url}: {e}")
-            return None
-    
-    def parse_html(self, html_content):
-        """Parse HTML content using BeautifulSoup"""
-        return BeautifulSoup(html_content, 'lxml')
-    
-    def extract_data(self, soup):
-        """Extract specific data from the parsed HTML
-        Customize this method based on what you want to scrape"""
-        
-        # Example: Extract all links
-        links = []
-        for link in soup.find_all('a', href=True):
-            links.append({
-                'text': link.get_text(strip=True),
-                'url': link['href']
-            })
-        
-        # Example: Extract all headings
-        headings = []
-        for heading in soup.find_all(['h1', 'h2', 'h3']):
-            headings.append({
-                'level': heading.name,
-                'text': heading.get_text(strip=True)
-            })
-        
-        return {
-            'links': links,
-            'headings': headings
-        }
-    
-    def save_to_json(self, data, filename='output.json'):
-        """Save scraped data to a JSON file"""
-        with open(filename, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-        print(f"Data saved to {filename}")
-    
-    def scrape(self, url):
-        """Main scraping method that coordinates everything"""
-        print(f"Scraping {url}...")
-        
-        # Fetch the page
-        response = self.fetch_page(url)
-        if not response:
-            return None
-        
-        # Parse the HTML
-        soup = self.parse_html(response.content)
-        
-        # Extract data
-        data = self.extract_data(soup)
-        
-        # Be polite: wait between requests
-        time.sleep(1)
-        
-        return data
+from urllib.parse import urlparse, urljoin
+from collections import deque
 
 
 # Example usage
 if __name__ == "__main__":
-    # Initialize scraper
-    scraper = WebScraper("https://example.com")
-    
-    # Scrape a page
-    data = scraper.scrape("https://example.com")
-    
-    if data:
-        # Save the results
-        scraper.save_to_json(data)
+    # Define start URL, extract domain, initialise data structires for vistsed, to visit and products urls
+    start_url = "https://www.lidl.nl/"
+    domain = urlparse(start_url).netloc
+    products_url = set()
+    visited = set()
+    queue = deque([start_url])
+    max_pages = 1000
+    metadata = ["ods-price__value", "ods-price__stroke-price", "heading__title", "availability", "product-id__number", "short-description"]
+
+    # Visit each page in the queue, extract links and enque them
+    while queue:
+
+        if len(visited) >= max_pages:
+            break
+
+        url = queue.popleft()
+        parsed_url = urlparse(url)
+        path = parsed_url.path.rstrip("/")
         
-        # Print summary
-        print(f"\nScraped {len(data['links'])} links")
-        print(f"Scraped {len(data['headings'])} headings")
+        
+        try:
+            response = requests.get(url, timeout=5)
+            html = response.text
+        except requests.RequestException:
+            continue
+
+        time.sleep(1)
+
+        soup = BeautifulSoup(html, "html.parser")
+        links = soup.find_all('a', href=True)
+        for a in links:
+            href = a["href"] 
+            full_url = urljoin(url, href)
+            parsed = urlparse(full_url)
+
+            if parsed.netloc == domain:
+                if full_url not in visited:
+                    visited.add(full_url)
+                    queue.append(full_url)
+        
+        if path.startswith("/p"):
+            products_url.add(url)
+            product_metadata = {}
+            for data in metadata: 
+                section = soup.find(class_=data)
+                text = section.get_text(separator=" ", strip=True) if section else None
+                product_metadata[data] = text
+            print(product_metadata)
+
+
+
